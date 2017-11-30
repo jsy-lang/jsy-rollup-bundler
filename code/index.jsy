@@ -70,7 +70,7 @@ export function watchAndBuild(rebuild) ::
   if 'function' !== typeof rebuild ::
     throw new TypeError @ `Expected rebuild to be a function or array`
 
-  const self = @{} rebuildOn, restartOn
+  const self = @{} rebuild, rebuildOn, restartOn
   return self
 
   async function _rebuild_debounce(path) ::

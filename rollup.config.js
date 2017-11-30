@@ -2,7 +2,7 @@ import rpi_babel from 'rollup-plugin-babel'
 import pkg from './package.json'
 
 const sourcemap = 'inline'
-const external = ['chokidar', 'rollup']
+const external = ['chokidar', 'rollup', 'rollup-plugin-babel']
 const plugins = [jsy_plugin()]
 
 export default {
