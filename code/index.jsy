@@ -1,4 +1,5 @@
 import {parse as path_parse} from 'path'
+import {execSync} from 'child_process'
 import {rollup} from 'rollup'
 import chokidar from 'chokidar'
 import rpi_babel from 'rollup-plugin-babel'
@@ -153,4 +154,10 @@ export function watchAndBuild(on_restart) ::
           50
         .unref()
       return self
+
+
+watchAndBuild.forever = function(command=`babel-node rollup.cfg.jsy --watch-impl`) ::
+  while true ::
+    execSync @ command, @{} stdio: 'inherit'
+    console.log @ `\n\nRestarting rollup watch\n\n`
 
