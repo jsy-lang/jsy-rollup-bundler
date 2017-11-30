@@ -70,19 +70,26 @@ export function watchAndBuild(rebuild) ::
   if 'function' !== typeof rebuild ::
     throw new TypeError @ `Expected rebuild to be a function or array`
 
-  const self = @{} rebuild, rebuildOn, restartOn
+  // invoke initial build
+  rebuild()
+
+  const self = @{} rebuildOn, restartOn, rebuild: _rebuild_debounce
   return self
 
-  async function _rebuild_debounce(path) ::
-    :: // debounce rapid updates
-      if null !== inprogress_changes ::
-        return inprogress_changes.push(path)
+  function _rebuild_debounce(path) ::
+    // debounce rapid updates
+    if null !== inprogress_changes ::
+      inprogress_changes.push(path)
+      return self
 
-      inprogress_changes = [path]
-      await new Promise @ resolve => setTimeout(resolve, 50).unref()
-      inprogress_changes = null
-
-    return rebuild()
+    inprogress_changes = [path]
+    setTimeout @
+      () => ::
+        inprogress_changes = null
+        rebuild()
+      50
+    .unref()
+    return self
 
   function rebuildOn(watch_glob) ::
     watchers.push @ chokidar
