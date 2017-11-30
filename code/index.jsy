@@ -3,10 +3,10 @@ import {rollup} from 'rollup'
 import chokidar from 'chokidar'
 import rpi_babel from 'rollup-plugin-babel'
 
-export function jsy_plugin(presets, plugins, kwargs) ::
+export function jsy_plugin(kwargs) ::
   const jsy_preset = @[] 'jsy/lean', @{} no_stage_3: true, modules: false
-  presets = [jsy_preset].concat @ presets || []
-  plugins = [].concat @ plugins || []
+  const presets = [jsy_preset].concat @ kwargs.presets || []
+  //const plugins = [].concat @ kwargs.plugins || []
 
   kwargs = Object.assign @
     @{} exclude: 'node_modules/**'
@@ -58,6 +58,21 @@ export function asRollupBuildClosure({input, output, opt}) ::
       bundle = await rollup(input)
       console.timeEnd @ `Compiled ${log_msg}`
       await bundle.write(output)
+
+    catch err ::
+      const {code, loc, frame} = err
+      const lines = @[]
+        ''
+        ''
+        `${err.message} (${code})`
+        `  in "${loc.file}" at ${loc.line}:${loc.column}"`
+        ''
+        frame
+        ''
+        ''
+
+      console.error @ lines.join('\n')
+
     finally ::
       console.timeEnd @ `Built ${log_msg}`
 
