@@ -1,4 +1,5 @@
 import {parse as path_parse} from 'path'
+import {fork} from 'child_process'
 import {rollup} from 'rollup'
 import chokidar from 'chokidar'
 import rpi_babel from 'rollup-plugin-babel'
@@ -83,7 +84,16 @@ export function buildAll(buildList) ::
     builder => builder()
 
 
-export function watchAndBuild() ::
+export function watchAndBuild(on_restart) ::
+  if null == on_restart ::
+    on_restart = () => ::
+      console.log @ 'Restarting'
+      fork()
+      process.exit(0)
+
+  if 'function' !== typeof on_restart ::
+    throw new TypeError @ `Expected on_restart to be a function`
+
   let watchers = []
   const self = @{} rebuildOn, buildOnce, restartOn
   return self
@@ -96,11 +106,14 @@ export function watchAndBuild() ::
         ignorePermissionErrors: true
 
       .on @ 'change', path => ::
+        if ! watchers :: return
         console.log @ `Setup changed; shutting down watchers ("${path}")`
         const l_watchers = watchers
         watchers = null
         for const each of l_watchers ::
           each.close()
+
+        on_restart(path)
 
     return self
 
