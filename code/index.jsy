@@ -43,10 +43,15 @@ export function bundle({source, opt, globalModules, plugins, format, amd}) ::
 export function asRollupBuildClosure({input, output, opt}) ::
   let bundle
   return async function () ::
-    input.cache = bundle
-    console.log @ `Building rollup bundle "${opt.source.name}"`
-    bundle = await rollup(input)
-    await bundle.write(output)
+    const log_msg = `rollup bundle "${opt.source.name}" (@${Date.now().toString(36)})`
+    console.log @ `Building ${log_msg}`
+    console.time @ `Built ${log_msg}`
+    try ::
+      input.cache = bundle
+      bundle = await rollup(input)
+      await bundle.write(output)
+    finally ::
+      console.timeEnd @ `Built ${log_msg}`
 
 export function buildAll(buildList) ::
   return Promise.all @ buildList.map @
@@ -57,15 +62,7 @@ export function watchAndBuild(rebuild) ::
   let watchers = []
 
   if Array.isArray(rebuild) ::
-    const rebuildList = rebuild
-    rebuild = async () => ::
-      const msg = 'Rebuilding for changes'
-      console.time(msg)
-      try ::
-        await buildAll @ rebuildList
-        console.timeEnd(msg)
-      catch err ::
-        console.error @ err
+    rebuild = buildAll.bind @ null, rebuild
 
   if 'function' !== typeof rebuild ::
     throw new TypeError @ `Expected rebuild to be a function or array`
