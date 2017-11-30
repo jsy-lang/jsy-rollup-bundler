@@ -1,6 +1,6 @@
 {
   "name": "jsy-rollup-bundler",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "JSY-oriented rollup bundling build chain",
   "author": "Shane Holloway <shane.holloway@ieee.org>",
   "license": "BSD-2-Clause",

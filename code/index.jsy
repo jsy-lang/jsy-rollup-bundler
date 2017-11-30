@@ -62,18 +62,20 @@ export function asRollupBuildClosure({input, output, opt}) ::
       await bundle.write(output)
 
     catch err ::
-      const {code, loc, frame} = err
-      const lines = @[]
-        ''
-        ''
-        `${err.message} (${code})`
-        `  in "${loc.file}" at ${loc.line}:${loc.column}"`
-        ''
-        frame
-        ''
-        ''
-
-      console.error @ lines.join('\n')
+      const {loc, frame} = err
+      if loc && frame ::
+        const lines = @[]
+          ''
+          ''
+          `${err.message} (${err.code})`
+          `  in "${loc.file}" at ${loc.line}:${loc.column}"`
+          ''
+          frame
+          ''
+          ''
+        console.error @ lines.join('\n')
+      else ::
+        console.error @ err
 
     finally ::
       console.timeEnd @ `Built ${log_msg}`
