@@ -84,7 +84,6 @@ export function watchAndBuild() ::
 
   function buildOnce(buildOnce, watch_glob) ::
     if Array.isArray(buildOnce) ::
-      if ! watch_glob :: watch_glob = buildOnce
       buildOnce = buildAll.bind @ null, buildOnce
 
     if 'function' !== typeof buildOnce ::
@@ -98,7 +97,6 @@ export function watchAndBuild() ::
   function rebuildOn(rebuild, watch_glob) ::
     let inprogress = false
     if Array.isArray(rebuild) ::
-      if ! watch_glob :: watch_glob = rebuild
       rebuild = buildAll.bind @ null, rebuild
 
     if 'function' !== typeof rebuild ::
