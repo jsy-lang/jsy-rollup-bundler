@@ -3,19 +3,23 @@ import {rollup} from 'rollup'
 import chokidar from 'chokidar'
 import rpi_babel from 'rollup-plugin-babel'
 
-export function jsy_plugin() ::
+export function jsy_plugin(presets, plugins, kwargs) ::
   const jsy_preset = @[] 'jsy/lean', @{} no_stage_3: true, modules: false
-  return rpi_babel @:
-    exclude: 'node_modules/**'
-    presets: [ jsy_preset ]
-    plugins: []
-    babelrc: false
-    highlightCode: false
+  presets = [jsy_preset].concat @ presets || []
+  plugins = [].concat @ plugins || []
+
+  kwargs = Object.assign @
+    @{} exclude: 'node_modules/**'
+        babelrc: false, highlightCode: false
+    kwargs
+    @{} presets, plugins
+
+  return rpi_babel(kwargs)
 
 export function bundle({source, opt, globalModules, plugins, format, amd}) ::
   if 'string' !== typeof source :: throw new TypeError @ `Expected string source parameter`
   if null == opt :: throw new TypeError @ `Expected valid "opt" object parameter`
-  opt = Object.assign @ {}, opt
+  opt = Object.create @ opt // Don't modify the underlying object
   if null == globalModules :: globalModules = opt.globalModules || {}
   if null == plugins :: plugins = opt.plugins || []
   if null == opt.suffix :: opt.suffix = opt.production ? '.min' : ''
