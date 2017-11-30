@@ -1,0 +1,51 @@
+{
+  "name": "jsy-rollup-bundler",
+  "version": "0.1.0",
+  "description": "JSY-oriented rollup bundling build chain",
+  "author": "Shane Holloway <shane.holloway@ieee.org>",
+  "license": "BSD-2-Clause",
+  "keywords": [
+    "JSY",
+    "syntax",
+    "offside",
+    "python",
+    "indention",
+    "indent"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/shanewholloway/jsy-rollup-bundler"
+  },
+  "bugs": {
+    "url": "https://github.com/shanewholloway/jsy-rollup-bundler/issues"
+  },
+  "homepage": "https://github.com/shanewholloway/jsy-rollup-bundler#readme",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "files": [
+    "dist",
+    "code",
+    "test"
+  ],
+  "peerDependencies": {
+    "chokidar": "^1.7.0",
+    "rollup": "^0.52.0",
+    "rollup-plugin-babel": "^3.0.2"
+  },
+  "devDependencies": {
+    "babel-cli": "^6.26.0",
+    "babel-preset-jsy": "^0.9.2",
+    "chokidar": "^1.7.0",
+    "rollup": "^0.52.0",
+    "rollup-plugin-babel": "^3.0.2"
+  },
+  "babel": {
+    "presets": "jsy/lean"
+  },
+  "scripts": {
+    "build": "rollup --config",
+    "watch": "npm -s run build -- --watch",
+    "pretest": "npm -s run build",
+    "test": "true"
+  }
+}

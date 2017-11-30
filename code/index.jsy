@@ -1,0 +1,111 @@
+import {rollup} from 'rollup'
+import chokidar from 'chokidar'
+import rpi_babel from 'rollup-plugin-babel'
+
+export function jsy_plugin() ::
+  const jsy_preset = @[] 'jsy/lean', @{} no_stage_3: true, modules: false
+  return rpi_babel @:
+    exclude: 'node_modules/**'
+    presets: [ jsy_preset ]
+    plugins: []
+    babelrc: false
+    highlightCode: false
+
+export function bundle({source, opt, globalModules, plugins, format, amd}) ::
+  if 'string' !== typeof source :: throw new TypeError @ `Expected string source parameter`
+  if null == opt :: throw new TypeError @ `Expected valid "opt" object parameter`
+  if null == globalModules :: globalModules = {}
+  if null == plugins :: plugins = []
+  if null == opt.suffix :: opt.suffix = opt.production ? '.min' : ''
+  if null == opt.outdir :: opt.outdir = './dist/public'
+
+  const input = @{}
+    plugins
+    input: source
+    external: module => !! globalModules[module]
+
+  if ! format ::
+    format = amd ? 'amd' : 'iife'
+
+  const output = @{}
+    format
+    name: opt.source.name
+    file: `${opt.outdir}/${opt.source.name}${opt.suffix}.js`
+    sourcemap: opt.sourcemap
+    globals(module) ::
+      return globalModules[module]
+
+  if amd && 'amd' === format :: output.amd = amd
+
+  return asRollupBuildClosure @:
+    input, output, opt
+
+export function asRollupBuildClosure({input, output, opt}) ::
+  let bundle
+  return async function () ::
+    input.cache = bundle
+    console.log @ `Building rollup bundle "${opt.source.name}"`
+    bundle = await rollup(input)
+    await bundle.write(output)
+
+export function buildAll(buildList) ::
+  return Promise.all @ buildList.map @
+    builder => builder()
+
+export function watchAndBuild(rebuild) ::
+  let inprogress_changes = null
+  let watchers = []
+
+  if Array.isArray(rebuild) ::
+    const rebuildList = rebuild
+    rebuild = async () => ::
+      const msg = 'Rebuilding for changes'
+      console.time(msg)
+      try ::
+        await buildAll @ rebuildList
+        console.timeEnd(msg)
+      catch err ::
+        console.error @ err
+
+  if 'function' !== typeof rebuild ::
+    throw new TypeError @ `Expected rebuild to be a function or array`
+
+  const self = @{} rebuildOn, restartOn
+  return self
+
+  async function _rebuild_debounce(path) ::
+    :: // debounce rapid updates
+      if null !== inprogress_changes ::
+        return inprogress_changes.push(path)
+
+      inprogress_changes = [path]
+      await new Promise @ resolve => setTimeout(resolve, 50).unref()
+      inprogress_changes = null
+
+    return rebuild()
+
+  function rebuildOn(watch_glob) ::
+    watchers.push @ chokidar
+      .watch @ watch_glob, @{}
+        ignoreInitial: true
+        ignorePermissionErrors: true
+
+      .on @ 'change', _rebuild_debounce
+
+    return self
+
+  function restartOn(watch_glob) ::
+    watchers.push @ chokidar
+      .watch @ watch_glob, @{}
+        ignoreInitial: true
+        ignorePermissionErrors: true
+
+      .on @ 'change', path => ::
+        console.log @ `Setup changed; shutting down watchers ("${path}")`
+        const l_watchers = watchers
+        watchers = null
+        for const each of l_watchers ::
+          each.close()
+
+    return self
+
