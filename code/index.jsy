@@ -1,3 +1,4 @@
+import {parse as path_parse} from 'path'
 import {rollup} from 'rollup'
 import chokidar from 'chokidar'
 import rpi_babel from 'rollup-plugin-babel'
@@ -14,14 +15,14 @@ export function jsy_plugin() ::
 export function bundle({source, opt, globalModules, plugins, format, amd}) ::
   if 'string' !== typeof source :: throw new TypeError @ `Expected string source parameter`
   if null == opt :: throw new TypeError @ `Expected valid "opt" object parameter`
-  if null == globalModules :: globalModules = {}
-  if null == plugins :: plugins = []
+  opt = Object.assign @ {}, opt
+  if null == globalModules :: globalModules = opt.globalModules || {}
+  if null == plugins :: plugins = opt.plugins || []
   if null == opt.suffix :: opt.suffix = opt.production ? '.min' : ''
   if null == opt.outdir :: opt.outdir = './dist/public'
+  if null == opt.source :: opt.source = path_parse @ source
 
-  const input = @{}
-    plugins
-    input: source
+  const input = @{} input: source, plugins,
     external: module => !! globalModules[module]
 
   if ! format ::
@@ -32,8 +33,7 @@ export function bundle({source, opt, globalModules, plugins, format, amd}) ::
     name: opt.source.name
     file: `${opt.outdir}/${opt.source.name}${opt.suffix}.js`
     sourcemap: opt.sourcemap
-    globals(module) ::
-      return globalModules[module]
+    globals: module => globalModules[module]
 
   if amd && 'amd' === format :: output.amd = amd
 
