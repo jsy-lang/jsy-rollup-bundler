@@ -63,7 +63,7 @@ export function buildAll(buildList) ::
 
 export function watchAndBuild() ::
   let watchers = []
-  const self = @{} rebuildOn, restartOn
+  const self = @{} rebuildOn, buildOnce, restartOn
   return self
 
 
@@ -82,6 +82,18 @@ export function watchAndBuild() ::
 
     return self
 
+  function buildOnce(buildOnce, watch_glob) ::
+    if Array.isArray(buildOnce) ::
+      if ! watch_glob :: watch_glob = buildOnce
+      buildOnce = buildAll.bind @ null, buildOnce
+
+    if 'function' !== typeof buildOnce ::
+      throw new TypeError @ `Expected buildOnce to be a function or array`
+
+    if watch_glob :: restartOn @ watch_glob
+
+    buildOnce()
+    return self
 
   function rebuildOn(rebuild, watch_glob) ::
     let inprogress = false
