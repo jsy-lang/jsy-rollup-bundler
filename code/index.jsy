@@ -55,50 +55,17 @@ export function asRollupBuildClosure({input, output, opt}) ::
     finally ::
       console.timeEnd @ `Built ${log_msg}`
 
+
 export function buildAll(buildList) ::
   return Promise.all @ buildList.map @
     builder => builder()
 
-export function watchAndBuild(rebuild) ::
-  let inprogress_changes = null
+
+export function watchAndBuild() ::
   let watchers = []
-
-  if Array.isArray(rebuild) ::
-    rebuild = buildAll.bind @ null, rebuild
-
-  if 'function' !== typeof rebuild ::
-    throw new TypeError @ `Expected rebuild to be a function or array`
-
-  // invoke initial build
-  rebuild()
-
-  const self = @{} rebuildOn, restartOn, rebuild: _rebuild_debounce
+  const self = @{} rebuildOn, restartOn
   return self
 
-  function _rebuild_debounce(path) ::
-    // debounce rapid updates
-    if null !== inprogress_changes ::
-      inprogress_changes.push(path)
-      return self
-
-    inprogress_changes = [path]
-    setTimeout @
-      () => ::
-        inprogress_changes = null
-        rebuild()
-      50
-    .unref()
-    return self
-
-  function rebuildOn(watch_glob) ::
-    watchers.push @ chokidar
-      .watch @ watch_glob, @{}
-        ignoreInitial: true
-        ignorePermissionErrors: true
-
-      .on @ 'change', _rebuild_debounce
-
-    return self
 
   function restartOn(watch_glob) ::
     watchers.push @ chokidar
@@ -114,4 +81,38 @@ export function watchAndBuild(rebuild) ::
           each.close()
 
     return self
+
+
+  function rebuildOn(rebuild, watch_glob) ::
+    let inprogress = false
+    if Array.isArray(rebuild) ::
+      if ! watch_glob :: watch_glob = rebuild
+      rebuild = buildAll.bind @ null, rebuild
+
+    if 'function' !== typeof rebuild ::
+      throw new TypeError @ `Expected rebuild to be a function or array`
+
+    // invoke initial build
+    rebuild()
+
+    watchers.push @ chokidar
+      .watch @ watch_glob, @{}
+        ignoreInitial: true
+        ignorePermissionErrors: true
+
+      .on @ 'change', _debounce
+
+    return self
+
+    function _debounce(path) ::
+      // debounce rapid updates
+      if false === inprogress ::
+        inprogress = true
+        setTimeout @
+          () => ::
+            inprogress = false
+            rebuild()
+          50
+        .unref()
+      return self
 
