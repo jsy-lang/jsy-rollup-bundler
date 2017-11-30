@@ -16,21 +16,22 @@ export function jsy_plugin(presets, plugins, kwargs) ::
 
   return rpi_babel(kwargs)
 
-export function bundle({source, opt, globalModules, plugins, format, amd}) ::
+export function bundle({source, opt, globalModules, externals, plugins, format, amd}) ::
   if 'string' !== typeof source :: throw new TypeError @ `Expected string source parameter`
   if null == opt :: throw new TypeError @ `Expected valid "opt" object parameter`
   opt = Object.create @ opt // Don't modify the underlying object
   if null == globalModules :: globalModules = opt.globalModules || {}
+  if null == externals :: externals = opt.externals || {}
   if null == plugins :: plugins = opt.plugins || []
+  if null == format :: format = opt.format || 'iife'
   if null == opt.suffix :: opt.suffix = opt.production ? '.min' : ''
   if null == opt.outdir :: opt.outdir = './dist/public'
   if null == opt.source :: opt.source = path_parse @ source
 
   const input = @{} input: source, plugins,
-    external: module => !! globalModules[module]
+    external: module => !! globalModules[module] || externals[module]
 
-  if ! format ::
-    format = amd ? 'amd' : 'iife'
+  if amd :: format = 'amd'
 
   const output = @{}
     format
@@ -39,7 +40,7 @@ export function bundle({source, opt, globalModules, plugins, format, amd}) ::
     sourcemap: opt.sourcemap
     globals: module => globalModules[module]
 
-  if amd && 'amd' === format :: output.amd = amd
+  if amd :: output.amd = amd
 
   return asRollupBuildClosure @:
     input, output, opt
