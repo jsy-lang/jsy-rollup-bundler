@@ -1,0 +1,47 @@
+
+export default connectReloadEventSource
+export function connectReloadEventSource(eventSourceUrl='__live__', update) ::
+  if null == update ::
+    const uid = Date.now().toString(36)
+    update = function (live_changes) ::
+      console.log @ `Live load (${uid})`
+      reloadDataLiveElements(live_changes, document)
+
+  const _global_key_ = `@@live-reload ${eventSourceUrl}`
+  if null != window[_global_key_] ::
+    window[_global_key_].close()
+    window[_global_key_] = null
+
+  const es = new EventSource(eventSourceUrl)
+  window[_global_key_] = es
+
+  es.onmessage = function (evt) ::
+    try ::
+      var live_changes = JSON.parse @ evt.data
+    catch err ::
+      console.error('Error during parsing of live changes:', err)
+      return
+
+    update(live_changes)
+  return es
+
+export function reloadDataLiveElements(live_changes, rootDoc=document) ::
+  for const el of rootDoc.querySelectorAll @ '[data-live]' ::
+    const [attr, change_key] = el.dataset['live'].split(' ')
+    const value = live_changes[change_key]
+    if ! value :: continue
+
+    const unchanged = (el[attr] || '').endsWith(value)
+    if unchanged :: continue
+
+    const changes = @: [attr]: value
+    const el_next = replaceElement @ el, changes
+
+export function replaceElement(element, updates) ::
+  const el = element.ownerDocument.createElement(element.nodeName)
+  for const a of element.attributes ::
+    el.setAttribute @ a.name, updates[a.name] || a.value
+
+  element.parentNode.replaceChild(el, element)
+  return el
+

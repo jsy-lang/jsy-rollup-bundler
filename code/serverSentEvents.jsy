@@ -1,0 +1,29 @@
+export default function asJSONServerSentEvents(res, subscriptionSet) ::
+  res.socket.setTimeout(0).setKeepAlive(true).setNoDelay(true)
+  res.writeHead @ 200, @:
+    'Content-Type': 'text/event-stream'
+    'Cache-Control': 'no-cache'
+    'Connection': 'keep-alive'
+
+  res.once @ 'error', shutdown
+  res.once @ 'close', shutdown
+
+  let write = res.write.bind(res)
+  res = undefined
+
+  if null != subscriptionSet ::
+    subscriptionSet.add @ sendJSONData
+
+  write @ `\n\n:sse ready\n\n`
+  return sendJSONData
+
+  function sendJSONData(obj) ::
+    if undefined !== write ::
+      write @ `data: ${JSON.stringify(obj)}\n\n`
+      return true
+
+  function shutdown(...args) ::
+    write = undefined
+    if null != subscriptionSet ::
+      subscriptionSet.delete @ sendJSONData
+

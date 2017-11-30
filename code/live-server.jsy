@@ -1,0 +1,89 @@
+import {promisify} from 'util'
+import * as fs from 'fs'
+import * as path from 'path'
+import chokidar from 'chokidar'
+import asJSONServerSentEvents from './serverSentEvents.jsy'
+
+const readFile = promisify @ fs.readFile
+
+export {asJSONServerSentEvents}
+
+export const rx_data_live = /data-live-([a-z-]+)=(?:'([^']+)'|"([^"]+)")/g
+export function replaceDataLive(webroot, data_live, source) ::
+  return source.replace @ rx_data_live, (m, attr, val_a, val_b) => ::
+    const key = path.relative @ webroot,
+      path.join @ webroot, val_a || val_b
+    return `${attr}='${data_live[key]}' data-live='${attr} ${key}'`
+
+
+export const renderDataLiveView = __express
+export async function __express(filePath, locals, callback) ::
+  const {webroot, data_live} = locals.settings.data_live_info
+  try ::
+    const source = await readFile @ filePath, 'utf-8'
+    const res = await replaceDataLive @ webroot, data_live, source
+    callback(null, res)
+  catch err ::
+    callback(err)
+
+export function initExpressLiveLoader(app, webroot, options={}) ::
+  if ! options :: options = {}
+  if undefined === options.view :: options.view = true
+
+  const live_info = initLiveLoader(webroot)
+  app.set @ 'data_live_info', live_info
+
+  if options.view ::
+    if true === options.view ::
+      options.view = 'html'
+      app.set @ 'view engine', 'html'
+
+    app.engine @ options.view, renderDataLiveView
+
+  app.get @ options.endpoint || '/__live__', (req, res) =>
+    asJSONServerSentEvents(res, live_info.subscriptions)
+
+  return live_info
+
+export function initLiveLoader(webroot, options) ::
+  if ! options :: options = {}
+  let {useProduction} = options
+  if undefined === useProduction ::
+    useProduction = 'production' == process.env.NODE_ENV
+
+  const subscriptions = new Set()
+  const production = {}, development = {}
+
+  const watcher = chokidar
+    .watch @ ['*.lnk'], @: cwd: webroot
+    .on @ 'add', updateWatchedLnk
+    .on @ 'change', updateWatchedLnk
+
+  const self = Object.create @ null, @{}
+    subscriptions: @{} value: subscriptions
+    watcher: @{} value: watcher
+
+  Object.assign @ self, @{}
+    webroot, production, development
+    data_live: useProduction ? production : development
+
+  return self
+
+  function live_sendChange(obj) ::
+    console.log @ 'Live changes', subscriptions.size, obj
+    for const sendChange of subscriptions.values() ::
+      sendChange(obj)
+
+  async function updateWatchedLnk(fname) ::
+    const filePath = path.join(webroot, fname)
+    const key = path.relative @ webroot, filePath.replace(/.lnk$/, '')
+    const tgt = path.join @ path.dirname(key), await readFile @ filePath, 'utf-8'
+
+    const minified = fname.includes('.min.')
+    if minified ::
+      production[key] = tgt
+
+    else if tgt != development[key] ::
+      development[key] = tgt
+      live_sendChange @ development
+
