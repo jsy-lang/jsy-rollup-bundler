@@ -51,9 +51,7 @@ export function asRollupBuildClosure({input, output, opt}) ::
       console.time @ `Compiled ${log_msg}`
       bundle = await rollup(input)
       console.timeEnd @ `Compiled ${log_msg}`
-      console.time @ `Wrote ${log_msg}`
       await bundle.write(output)
-      console.timeEnd @ `Wrote ${log_msg}`
     finally ::
       console.timeEnd @ `Built ${log_msg}`
 
