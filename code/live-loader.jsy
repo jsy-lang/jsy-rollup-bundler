@@ -15,8 +15,8 @@ export function connectReloadEventSource(url='__live__', update) ::
   const es = new EventSource(url)
   window[_global_key_] = es
 
-  es.onerror = function (err) ::
-    console.warn @ 'Problem with live reload:', err
+  es.onopen = function (err) :: console.warn @ 'Live reload ready'
+  es.onerror = function (err) :: console.warn @ 'Live reload NOT ready'
 
   es.onmessage = function (evt) ::
     try ::
