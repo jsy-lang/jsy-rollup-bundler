@@ -1,46 +1,44 @@
 
 export default connectReloadEventSource
-export function connectReloadEventSource(eventSourceUrl='__live__', update) ::
+export function connectReloadEventSource(url='__live__', update) ::
   if null == update ::
     const uid = Date.now().toString(36)
     update = function (live_changes) ::
-      console.log @ `Live load (${uid})`
+      console.log @ `Live reload (${uid})`
       reloadDataLiveElements(live_changes, document)
 
-  const _global_key_ = `@@live-reload ${eventSourceUrl}`
+  const _global_key_ = `@@live-reload ${url}`
   if null != window[_global_key_] ::
     window[_global_key_].close()
     window[_global_key_] = null
 
-  const es = new EventSource(eventSourceUrl)
+  const es = new EventSource(url)
   window[_global_key_] = es
+
+  es.onerror = function (err) ::
+    console.warn @ 'Problem with live reload:', err
 
   es.onmessage = function (evt) ::
     try ::
       var live_changes = JSON.parse @ evt.data
+      update(live_changes)
     catch err ::
-      console.error('Error during parsing of live changes:', err)
-      return
-
-    update(live_changes)
+      return console.error(err)
   return es
 
 export function reloadDataLiveElements(live_changes, rootDoc=document) ::
   for const el of rootDoc.querySelectorAll @ '[data-live]' ::
     const [attr, change_key] = el.dataset['live'].split(' ')
     const value = live_changes[change_key]
-    if ! value :: continue
+    if ! value || (el[attr] || '').endsWith(value) ::
+      continue // unchanged
 
-    const unchanged = (el[attr] || '').endsWith(value)
-    if unchanged :: continue
+    replaceElement @ el, {[attr]: value}
 
-    const changes = @: [attr]: value
-    const el_next = replaceElement @ el, changes
-
-export function replaceElement(element, updates) ::
+export function replaceElement(element, changes) ::
   const el = element.ownerDocument.createElement(element.nodeName)
   for const a of element.attributes ::
-    el.setAttribute @ a.name, updates[a.name] || a.value
+    el.setAttribute @ a.name, changes[a.name] || a.value
 
   element.parentNode.replaceChild(el, element)
   return el
