@@ -1,35 +1,54 @@
 
 export default connectReloadEventSource
-export function connectReloadEventSource(url='__live__', update) ::
-  if null == update ::
-    const uid = Date.now().toString(36)
-    update = function (live_changes) ::
-      console.log @ `Live reload (${uid})`
-      reloadDataLiveElements(live_changes, document)
+export function connectReloadEventSource(opts) ::
+  if null == opts :: opts = {}
+  else if 'function' === typeof opts ::
+    opts = @{} on_update: opts
 
-  const _global_key_ = `@@live-reload ${url}`
-  if null != window[_global_key_] ::
-    window[_global_key_].close()
-    window[_global_key_] = null
+  const url = opts.url || '__live__'
+
+  if null == opts.show_errors ::
+    opts.show_errors = function(errorList) ::
+      for const err_msg of errorList ::
+        console.error @ err_msg
+
+  if null == opts.on_update ::
+    const uid = Date.now().toString(36)
+    opts.on_update = function ({live, errors}) ::
+      if errors && errors.length ::
+        console.warn @ `Live reload (${uid}) with errors`
+      else console.warn @ `Live reload (${uid}) success`
+
+      opts.show_errors(errors || [])
+      reloadDataLiveElements(live, window.document)
+
+
+  const _live_reload_global_ = `@@live-reload ${url}`
+  if null != window[_live_reload_global_] ::
+    window[_live_reload_global_]()
+    window[_live_reload_global_] = null
 
   const es = new EventSource(url)
-  window[_global_key_] = es
+  window[_live_reload_global_] = () => ::
+    es.close()
+    if opts.on_shutdown ::
+      opts.on_shutdown()
+
 
   es.onopen = function (err) :: console.warn @ 'Live reload ready'
   es.onerror = function (err) :: console.warn @ 'Live reload NOT ready'
 
   es.onmessage = function (evt) ::
     try ::
-      var live_changes = JSON.parse @ evt.data
-      update(live_changes)
+      opts.on_update @ JSON.parse @ evt.data
     catch err ::
       return console.error(err)
   return es
 
-export function reloadDataLiveElements(live_changes, rootDoc=document) ::
+export function reloadDataLiveElements(live, rootDoc=window.document) ::
   for const el of rootDoc.querySelectorAll @ '[data-live]' ::
     const [attr, change_key] = el.dataset['live'].split(' ')
-    const value = live_changes[change_key]
+    const value = live[change_key]
     if ! value || (el[attr] || '').endsWith(value) ::
       continue // unchanged
 

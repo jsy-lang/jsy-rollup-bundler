@@ -1,0 +1,18 @@
+import ErrorOverlay from 'react-error-overlay'
+import connectReloadEventSource from './live-loader.jsy'
+
+export default function connectReloadEventSourceWithReact(opts) ::
+  if null == opts :: opts = {}
+
+  opts.show_errors = errorList => ::
+    ErrorOverlay.reportBuildError @ errorList[0]
+
+  const {on_shutdown} = opts
+  opts.on_shutdown = () => ::
+    ErrorOverlay.stopReportingRuntimeErrors()
+    if on_shutdown :: on_shutdown()
+    
+  ErrorOverlay.startReportingRuntimeErrors({})
+  connectReloadEventSource(opts)
+  return ErrorOverlay
+

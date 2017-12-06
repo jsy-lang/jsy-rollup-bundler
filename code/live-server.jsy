@@ -52,7 +52,8 @@ export function initExpressLiveLoader(app, webroot, options={}) ::
 
   if ! useProduction ::
     app.get @ options.endpoint || '/__live__', (req, res) =>
-      asJSONServerSentEvents(res, live_info.subscriptions)
+      live_info.sendChange @ 
+        asJSONServerSentEvents(res, live_info.subscriptions)
 
   return live_info
 
@@ -61,19 +62,29 @@ export function initLiveLoader(webroot, options) ::
   const {useProduction} = options
 
   const subscriptions = new Set()
-  const production = {}, development = {}
+  const production = {}, development = {}, dev_errors = new Map()
 
-  const watcher = chokidar
+  const watchers = []
+
+  watchers.push @ chokidar
     .watch @ ['*.lnk'], @: cwd: webroot
     .on @ 'add', updateWatchedLnk
     .on @ 'change', updateWatchedLnk
 
   if useProduction ::
-    setTimeout @ () => watcher.close(), 60000
+    setTimeout @ () => watchers.forEach(e=>e.close()), 60000
+
+  else :: 
+    watchers.push @ chokidar
+      .watch @ ['*.err*'], @: cwd: webroot
+      .on @ 'add', updateWatchedErr
+      .on @ 'change', updateWatchedErr
+      .on @ 'unlink', updateWatchedErr
 
   const self = Object.create @ null, @{}
     subscriptions: @{} value: subscriptions
-    watcher: @{} value: watcher
+    sendChange: @{} value: live_sendChange
+    watchers: @{} value: watchers
 
   Object.assign @ self, @{}
     webroot, production, development
@@ -82,9 +93,16 @@ export function initLiveLoader(webroot, options) ::
 
   return self
 
-  function live_sendChange(obj) ::
-    for const sendChange of subscriptions.values() ::
-      sendChange(obj)
+  function live_sendChange(lst) ::
+    if null == lst ::
+      lst = subscriptions.values()
+    else if 'function' === typeof lst ::
+      lst = [lst]
+
+    for const sendChange of lst ::
+      sendChange @:
+        live: development
+        errors: Array.from @ dev_errors.values()
 
   async function updateWatchedLnk(fname) ::
     const filePath = path.join(webroot, fname)
@@ -98,5 +116,23 @@ export function initLiveLoader(webroot, options) ::
 
     else if tgt != development[key] ::
       development[key] = tgt
-      live_sendChange @ development
+      live_sendChange()
 
+  async function updateWatchedErr(fname) ::
+    const filePath = path.join(webroot, fname)
+    const key = filePath.replace(/.err\w*$/, '')
+
+    let err_msg
+    try ::
+      err_msg = await readFile @ filePath, 'utf-8'
+    catch err ::
+      if 'ENOENT' !== err.code ::
+        return console.error @ err
+      err_msg = ''
+
+    if err_msg ::
+      dev_errors.set @ fname, err_msg
+    else ::
+      dev_errors.delete @ fname
+
+    live_sendChange()

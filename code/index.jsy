@@ -1,17 +1,19 @@
+import {inspect, promisify} from 'util'
+import {writeFile} from 'fs'
 import {parse as path_parse} from 'path'
 import {execSync} from 'child_process'
 import {rollup} from 'rollup'
 import chokidar from 'chokidar'
 import rpi_babel from 'rollup-plugin-babel'
 
+const writeFile_p = promisify(writeFile)
 
 export function jsy_plugin(kwargs) ::
   const jsy_preset = @[] 'jsy/lean', @{} no_stage_3: true, modules: false
   const presets = [jsy_preset].concat @ kwargs.presets || []
 
   kwargs = Object.assign @
-    @{} exclude: 'node_modules/**'
-        babelrc: false, highlightCode: false
+    @{} exclude: 'node_modules/**', babelrc: false, highlightCode: true
     kwargs
     @{} presets
 
@@ -45,12 +47,53 @@ export function bundle({source, opt, globalModules, externals, plugins, format, 
 
   if amd :: output.amd = amd
 
-  return asRollupBuildClosure @:
+  return (opt.buildClosure || asRollupBuildClosure) @:
     input, output, opt
 
-export function asRollupBuildClosure({input, output, opt}) ::
+
+export function formatBuildError(err, join) ::
+  const {loc, frame, codeFrame} = err
+  if ! @ loc || frame || codeFrame :: return
+
+  const colors = /\[\d+m/.test @ (frame||codeFrame||'')
+  const hl = v => inspect @ v, @{} colors
+
+  const lines = []
+  let msg = err.message
+  if err.id ::
+    // simplify output by splitting err.id to distinct line
+    msg = msg.replace(`${err.id}: `, '')
+
+  lines.push @ `BuildError: ${hl(msg)}`
+
+  if loc :: lines.push @ `  in ${hl(loc.file)} at ${hl(loc.line)}:${hl(loc.column)}`
+  if err.id :: lines.push @ `  id: ${hl(err.id)}`
+  if err.code :: lines.push @ `  code: ${hl(err.code)}`
+
+  if frame || codeFrame ::
+    lines.push @ '', frame || codeFrame
+
+  if true === join :: return lines.join('\n')
+  else if join :: return lines.join(join)
+  else return lines
+
+
+export function asRollupBuildClosure(buildCtx) ::
+  const {input, output, opt} = buildCtx
+  const err_outfile = `${output.file}.error`
   let bundle
-  return async function () ::
+  return opt.no_timing ? build : buildWithTiming
+
+  async function build() ::
+    try ::
+      input.cache = bundle
+      bundle = await rollup(input)
+      await bundle.write(output)
+      await writeFile_p(err_outfile, '')
+    catch err ::
+      await onBuildError(err)
+
+  async function buildWithTiming() ::
     const log_msg = `rollup bundle "${opt.source.name}" (@${Date.now().toString(36)})`
     console.log @ `Building ${log_msg}`
     console.time @ `Built ${log_msg}`
@@ -60,25 +103,23 @@ export function asRollupBuildClosure({input, output, opt}) ::
       bundle = await rollup(input)
       console.timeEnd @ `Compiled ${log_msg}`
       await bundle.write(output)
-
+      await writeFile_p(err_outfile, '')
     catch err ::
-      const {loc, frame} = err
-      if loc && frame ::
-        const lines = @[]
-          ''
-          ''
-          `${err.message} (${err.code})`
-          `  in "${loc.file}" at ${loc.line}:${loc.column}"`
-          ''
-          frame
-          ''
-          ''
-        console.error @ lines.join('\n')
-      else ::
-        console.error @ err
-
+      await onBuildError(err)
     finally ::
       console.timeEnd @ `Built ${log_msg}`
+
+  async function onBuildError(err) ::
+    const lines = formatBuildError @ err, true
+    if opt.onBuildError ::
+      return opt.onBuildError @ err, lines, buildCtx
+
+    const err_msg = lines
+      ? lines+'\n'
+      : inspect(err, {colors: true})
+
+    console.error @ '\n\n', err_msg, '\n'
+    await writeFile_p @ err_outfile, err_msg, 
 
 
 export function buildAll(buildList) ::

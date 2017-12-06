@@ -21,6 +21,10 @@ export default [
   { input: 'code/live-loader.jsy',
     output: [{file: 'dist/live-loader.mjs', format: 'es'}],
     sourcemap, external: [], plugins },
+
+  { input: 'code/react-live-loader.jsy',
+    output: [{file: 'dist/react-live-loader.mjs', format: 'es'}],
+    sourcemap, external: ['react-error-overlay'], plugins },
 ]
 
 
@@ -30,5 +34,5 @@ function jsy_plugin() {
     exclude: 'node_modules/**',
     presets: [ jsy_preset ],
     plugins: [],
-    babelrc: false, highlightCode: false }) }
+    babelrc: false }) }
 
