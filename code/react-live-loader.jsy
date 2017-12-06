@@ -9,7 +9,9 @@ export default function connectReloadEventSourceWithReact(opts) ::
 
   const {on_shutdown} = opts
   opts.on_shutdown = () => ::
-    ErrorOverlay.stopReportingRuntimeErrors()
+    try :: ErrorOverlay.stopReportingRuntimeErrors()
+    catch err :: // ignore...
+
     if on_shutdown :: on_shutdown()
     
   ErrorOverlay.startReportingRuntimeErrors({})
