@@ -32,18 +32,29 @@ export function bundle({source, opt, globalModules, externals, plugins, format, 
   if null == opt.outdir :: opt.outdir = './dist/public'
   if null == opt.source :: opt.source = path_parse @ source
 
+  if 'function' !== typeof globalModules ::
+    const l_globalModules = globalModules
+    globalModules = module => l_globalModules[module]
+
   externals = new Set @ externals
-  const input = @{} input: source, plugins,
-    external: module => !! globalModules[module] || externals.has(module)
+  const input = Object.assign @
+    @{} input: source, plugins,
+        external: module =>
+          !! globalModules(module)
+          || externals.has(module)
+
+    opt.input_options
 
   if amd :: format = 'amd'
 
-  const output = @{}
-    format
-    name: opt.source.name
-    file: `${opt.outdir}/${opt.source.name}${opt.suffix}.js`
-    sourcemap: opt.sourcemap
-    globals: module => globalModules[module]
+  const output = Object.assign @ 
+    @{} format
+        name: opt.source.name
+        file: `${opt.outdir}/${opt.source.name}${opt.suffix}.js`
+        sourcemap: opt.sourcemap
+        globals: globalModules
+
+    opt.output_options
 
   if amd :: output.amd = amd
 

@@ -1,6 +1,6 @@
 {
   "name": "jsy-rollup-bundler",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "JSY-oriented rollup bundling build chain",
   "author": "Shane Holloway <shane.holloway@ieee.org>",
   "license": "BSD-2-Clause",
@@ -29,12 +29,12 @@
   ],
   "peerDependencies": {
     "chokidar": "^1.7.0",
-    "rollup": "^0.52.0",
-    "rollup-plugin-babel": "^3.0.2"
+    "rollup": "^0.52.3",
+    "rollup-plugin-babel": "^3.0.3"
   },
   "devDependencies": {
     "babel-cli": "^6.26.0",
-    "babel-preset-jsy": "^0.9.2",
+    "babel-preset-jsy": "^0.9.4",
     "chokidar": "^1.7.0",
     "rollup": "^0.52.0",
     "rollup-plugin-babel": "^3.0.2"
