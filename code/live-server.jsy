@@ -67,7 +67,10 @@ export function initLiveLoader(webroot, options) ::
   const watchers = []
 
   watchers.push @ chokidar
-    .watch @ ['*.lnk'], @: cwd: webroot
+    .watch @ ['*.lnk'], @{}
+      cwd: webroot
+      usePolling: !! options.usePolling
+      interval: options.interval || 250
     .on @ 'add', updateWatchedLnk
     .on @ 'change', updateWatchedLnk
 
@@ -76,7 +79,10 @@ export function initLiveLoader(webroot, options) ::
 
   else :: 
     watchers.push @ chokidar
-      .watch @ ['*.err*'], @: cwd: webroot
+      .watch @ ['*.err*'], @{}
+        cwd: webroot
+        usePolling: !! options.usePolling
+        interval: options.interval || 250
       .on @ 'add', updateWatchedErr
       .on @ 'change', updateWatchedErr
       .on @ 'unlink', updateWatchedErr
