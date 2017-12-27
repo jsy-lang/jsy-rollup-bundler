@@ -47,7 +47,7 @@ export function bundle({source, opt, globalModules, externals, plugins, format, 
 
   if amd :: format = 'amd'
 
-  const output = Object.assign @ 
+  const output = Object.assign @
     @{} format
         name: opt.source.name
         file: `${opt.outdir}/${opt.source.name}${opt.suffix}.js`
@@ -101,6 +101,7 @@ export function asRollupBuildClosure(buildCtx) ::
       bundle = await rollup(input)
       await bundle.write(output)
       await writeFile_p(err_outfile, '')
+      return bundle
     catch err ::
       await onBuildError(err)
 
@@ -115,6 +116,7 @@ export function asRollupBuildClosure(buildCtx) ::
       console.timeEnd @ `Compiled ${log_msg}`
       await bundle.write(output)
       await writeFile_p(err_outfile, '')
+      return bundle
     catch err ::
       await onBuildError(err)
     finally ::
@@ -130,7 +132,7 @@ export function asRollupBuildClosure(buildCtx) ::
       : inspect(err, {colors: true})
 
     console.error @ '\n\n', err_msg, '\n'
-    await writeFile_p @ err_outfile, err_msg, 
+    await writeFile_p @ err_outfile, err_msg,
 
 
 export function buildAll(buildList) ::
@@ -185,16 +187,17 @@ export function watchAndBuild(on_restart) ::
     if 'function' !== typeof rebuild ::
       throw new TypeError @ `Expected rebuild to be a function or array`
 
-    // invoke initial build
-    rebuild()
-
-    watchers.push @ chokidar
+    const rebuildWatcher = chokidar
       .watch @ watch_glob, @{}
         ignoreInitial: true
         ignorePermissionErrors: true
 
       .on @ 'change', _debounce
 
+    watchers.push @ rebuildWatcher
+
+    // invoke initial build
+    _debounce()
     return self
 
     function _debounce(path) ::
@@ -204,10 +207,23 @@ export function watchAndBuild(on_restart) ::
         setTimeout @
           () => ::
             inprogress = false
-            rebuild()
+            _do_rebuild()
           50
         .unref()
       return self
+
+    async function _do_rebuild() ::
+      let lst = await rebuild()
+      if null == lst :: return
+
+      if ! Array.isArray(lst) :: lst = [lst]
+      for const bundle of lst ::
+        const paths = bundle.modules.map(e => e.id)
+          .filter @ id => id
+            && ! id.includes('/node_modules/')
+            && ('\u0000' !== id[0])
+
+        rebuildWatcher.add(paths)
 
 
 watchAndBuild.forever = function(command=`babel-node rollup.cfg.jsy --watch-impl`) ::
