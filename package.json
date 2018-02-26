@@ -29,8 +29,7 @@
   ],
   "peerDependencies": {
     "chokidar": "^2.0.2",
-    "rollup": "^0.56.3",
-    "rollup-plugin-babel": "^3.0.3"
+    "rollup": "^0.56.3"
   },
   "devDependencies": {
     "babel-cli": "^6.26.0",
