@@ -1,6 +1,6 @@
 {
   "name": "jsy-rollup-bundler",
-  "version": "0.4.4",
+  "version": "0.5.0",
   "description": "JSY-oriented rollup bundling build chain",
   "author": "Shane Holloway <shane.holloway@ieee.org>",
   "license": "BSD-2-Clause",
@@ -20,29 +20,30 @@
     "url": "https://github.com/shanewholloway/jsy-rollup-bundler/issues"
   },
   "homepage": "https://github.com/shanewholloway/jsy-rollup-bundler#readme",
-  "main": "dist/index.js",
-  "module": "dist/index.mjs",
+  "main": "cjs/index.js",
+  "module": "esm/index.js",
   "files": [
-    "dist",
-    "code",
-    "test"
+    "cjs",
+    "esm",
+    "umd"
   ],
   "peerDependencies": {
-    "chokidar": "^1.7.0",
-    "rollup": "^0.52.3",
+    "chokidar": "^2.0.2",
+    "rollup": "^0.56.3",
     "rollup-plugin-babel": "^3.0.3"
   },
   "devDependencies": {
     "babel-cli": "^6.26.0",
-    "babel-preset-jsy": "^0.9.4",
-    "chokidar": "^1.7.0",
-    "rollup": "^0.52.0",
-    "rollup-plugin-babel": "^3.0.2"
+    "babel-preset-jsy": "^0.10.1",
+    "chokidar": "^2.0.2",
+    "rollup": "^0.56.3",
+    "rollup-plugin-jsy-babel": "^1.0.1"
   },
   "babel": {
     "presets": "jsy/lean"
   },
   "scripts": {
+    "clean": "rm -rf cjs/* esm/*",
     "build": "rollup --config",
     "watch": "npm -s run build -- --watch",
     "pretest": "npm -s run build",
