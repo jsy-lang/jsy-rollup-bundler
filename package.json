@@ -1,6 +1,6 @@
 {
   "name": "jsy-rollup-bundler",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "JSY-oriented rollup bundling build chain",
   "author": "Shane Holloway <shane.holloway@ieee.org>",
   "license": "BSD-2-Clause",
@@ -14,12 +14,12 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/shanewholloway/jsy-rollup-bundler"
+    "url": "git+https://github.com/jsy-lang/jsy-rollup-bundler"
   },
   "bugs": {
-    "url": "https://github.com/shanewholloway/jsy-rollup-bundler/issues"
+    "url": "https://github.com/jsy-lang/jsy-rollup-bundler/issues"
   },
-  "homepage": "https://github.com/shanewholloway/jsy-rollup-bundler#readme",
+  "homepage": "https://github.com/jsy-lang/jsy-rollup-bundler#readme",
   "main": "cjs/index.js",
   "module": "esm/index.js",
   "files": [
